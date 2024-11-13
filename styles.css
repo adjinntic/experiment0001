@@ -1,0 +1,35 @@
+/* styles.css */
+body, html {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #0e0b16;
+    font-family: 'Inter', sans-serif;
+}
+
+#particle-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+}
+
+.button-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+#interactive-button {
+    padding: 15px 30px;
+    font-size: 1.5rem;
+    color: #fff;
+    background: linear-gradient(45deg, #e91e63, #673ab7);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+#interactive-button:hover {
+    transform: scale(1.05);
+}
