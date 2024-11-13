@@ -26,7 +26,7 @@ window.addEventListener('resize', function() {
 const gridSpacing = 30; // Distance between grid points
 let gridPoints = [];
 
-// Initialize grid of points with random colors
+// Initialize grid of points
 function initGrid() {
   gridPoints = [];
   
@@ -39,27 +39,20 @@ function initGrid() {
           const posY = y * gridSpacing;
 
           // Create each point with its initial position (rest state)
-          // Initialize each point with a random hue for colorful effect
-          const hue = Math.random() * 360; // Random hue between 0 and 360
-
           gridPoints.push({
               x: posX,
               y: posY,
               homeX: posX,
               homeY: posY,
-              velocityZ: 0,
-              zOffset: -100, // Initial Z offset behind canvas
-              maxZOffset: 100, // Maximum Z offset towards camera
-              hue: hue, // Store initial hue value for color transitions
-              saturation: 80, // Fixed saturation value for vibrant colors
-              lightness: 50, // Initial lightness value (will change based on zOffset)
-              size: 3 // Initial size of the point
+              velocityX: 0,
+              velocityY: 0,
+              colorBrightness: 255 // Start as white
           });
       }
   }
 }
 
-// Update each point's position and color based on mouse influence
+// Update each point's position based on mouse influence
 function updateGrid() {
   for (let point of gridPoints) {
       const dxMouse = mouse.x - point.x;
@@ -68,70 +61,66 @@ function updateGrid() {
       // Calculate distance from point to mouse
       const distanceToMouse = Math.sqrt(dxMouse * dxMouse + dyMouse * dyMouse);
 
-      // If within influence radius, apply displacement along Z axis
+      // If within influence radius, apply displacement towards mouse
       if (distanceToMouse < mouse.radius) {
           const forceFactor = (mouse.radius - distanceToMouse) / mouse.radius;
 
-          // Move point along Z axis towards camera
-          point.velocityZ += forceFactor * (point.maxZOffset - point.zOffset) * 0.05;
+          // Displace point towards mouse with some elasticity
+          point.velocityX += forceFactor * dxMouse * 0.05; 
+          point.velocityY += forceFactor * dyMouse * 0.05;
 
-          // Change lightness based on how far it's stretched along Z axis
-          const displacementRatio = Math.min(1, Math.abs(point.zOffset) / point.maxZOffset);
-          point.lightness = Math.round(50 + displacementRatio * 30); // Increase lightness as it moves towards the camera
-
+          // Change color based on how far it's stretched from its home position
+          const displacementRatio = Math.min(1, distanceToMouse / mouse.radius);
+          point.colorBrightness = Math.round(255 * (1 - displacementRatio));
       } 
       
       // Gradually return to rest state if outside influence radius
       else {
-          // Apply spring-like force back towards rest Z position (-100)
-          point.velocityZ += (-100 - point.zOffset) * 0.02;
+          const dxHome = point.homeX - point.x;
+          const dyHome = point.homeY - point.y;
 
-          // Gradually reset lightness back to its initial value as it returns home
-          if (Math.abs(point.zOffset + 100) < 1) {
-              point.lightness = 50; 
+          // Apply spring-like force back towards home position
+          point.velocityX += dxHome * 0.02; 
+          point.velocityY += dyHome * 0.02;
+
+          // Gradually reset color back to white as it returns home
+          if (Math.abs(dxHome) < 1 && Math.abs(dyHome) < 1) {
+              point.colorBrightness = 255; 
           }
       }
 
       // Apply velocity and damping effect (to slow down over time)
-      point.zOffset += point.velocityZ;
+      point.x += point.velocityX;
+      point.y += point.velocityY;
 
       // Damping factor to reduce velocity over time
-      point.velocityZ *= 0.1; 
-      
-      // Oscillate around rest position when returning from large displacements
-      if (Math.abs(point.zOffset + 100) < 5 && Math.abs(point.velocityZ) > 0.5) {
-        point.velocityZ *= -0.8; // Reverse velocity slightly for oscillation effect
-      }
-      
-      // Adjust size based on Z offset for a pseudo-3D effect
-      const sizeFactor = Math.max(0.05, (point.maxZOffset + point.zOffset) / (point.maxZOffset * 2));
-      
-      point.size = sizeFactor * 200 
-    }
+      point.velocityX *= 0.95; 
+      point.velocityY *= 0.95; 
+  }
 }
 
-// Draw all points on the canvas with HSL colors for smooth gradients
+// Draw all points on the canvas
 function drawGrid() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    for (let point of gridPoints) {
-        ctx.beginPath();
-        ctx.arc(point.x, point.y, point.size, 0, Math.PI * 2);
-        
-        // Set fill style using HSL based on hue and lightness values calculated from z-offset
-        ctx.fillStyle = `hsl(${point.hue}, ${point.saturation}%, ${point.lightness}%)`;
-        
-        ctx.fill();
-        ctx.closePath();
-    }
+  for (let point of gridPoints) {
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, 3, 0, Math.PI * 2);
+      
+      // Set fill style based on brightness value calculated from displacement
+      ctx.fillStyle = `rgb(${point.colorBrightness}, ${point.colorBrightness}, ${point.colorBrightness})`;
+      
+      ctx.fill();
+      ctx.closePath();
+  }
 }
 
 // Animation loop
 function animate() {
-    updateGrid();
-    drawGrid();
-    
-    requestAnimationFrame(animate);
+  updateGrid();
+  drawGrid();
+  
+  requestAnimationFrame(animate);
 }
 
 // Initialize everything and start animation loop
